@@ -1,120 +1,46 @@
-Session Gemini Chatbot + Connection Type API
+Wynante Connection_Type API (Production-ready)
 
-A workspace with two Django REST projects:
-- Chatbot: Session-based AI chatbot using LangChain + Google Gemini.
-- Connection_Type: API that analyzes a conversation and classifies connection type.
-
-Features
-
-Email-based session authentication
-
-AI-powered conversations using Google Gemini
-
-Conversation history per session
-
-RESTful API architecture
-
-LangChain integration for AI workflows
-
-Tech Stack
-
-Backend: Django REST Framework
-
-AI: Google Gemini, LangChain
-
-Session Management: Django Sessions
-
-API: RESTful endpoints
-
-Chatbot API Endpoints
-
-Set Email & Create Session
-POST /api/set_email/
-{
-"email": "user@example.com"
-}
-
-Chat with AI
-POST /api/chat/
-{
-"message": "Hello, how are you?",
-"session_id": "your_session_id"
-}
-
-Setup
-
-Clone the repository
-
-Install dependencies: pip install -r requirements.txt
-
-Set up environment variables:
-GEMINI_API_KEY=your_gemini_api_key
-
-Run migrations: python manage.py migrate
-
-Start server: python manage.py runserver
-
-Usage
-
-First, set your email to create a session
-
-Use the returned session_id for all chat requests
-
-Each session maintains its own conversation history
-
-Quick Try (Windows PowerShell)
-
-Set Email & Get Session ID
-
-curl -X POST http://127.0.0.1:8000/api/set_email/ -H "Content-Type: application/json" -d '{"email":"user@example.com"}'
-
-Chat with AI (Math-only)
-
-curl -X POST http://127.0.0.1:8000/api/chat/ -H "Content-Type: application/json" -d '{"message":"What is 12*8?","session_id":"<paste_session_id_here>"}'
-
-Notes
-- Uses `langchain-google-genai` with the supported `google.genai` SDK.
-- Configure `GEMINI_API_KEY` in your `.env`.
-
-Connection_Type Project
-
-Setup (Windows PowerShell)
-
-1. Create/activate venv and install requirements (already handled if using workspace venv).
-2. Run migrations and start the server.
-
-Commands
-
-```
-cd Connection_Type
-..\venv\Scripts\python.exe manage.py makemigrations api
-..\venv\Scripts\python.exe manage.py migrate
-..\venv\Scripts\python.exe manage.py runserver
-```
+Overview
+This is a production-ready, AI-driven two-person conversation analyzer. It exposes a single endpoint that reads conversations from the database and returns independent 0–100 scores for Social, Romantic, Spiritual, Professional, plus the highest type.
 
 Environment
-- Optional: `DATABASE_URL` for Postgres via `dj-database-url`.
-- If using Postgres, `psycopg2-binary` is installed.
+Copy `.env.example` to `.env` and set values:
 
-Endpoints
-- POST /api/analyze/
-
-Request body
 ```
-{
-	"messages": [
-		{"sender": "Alice", "text": "Hi! How are you?"},
-		{"sender": "Bob", "text": "Let's schedule a meeting for the project."}
-	]
-}
+SECRET_KEY=change-me
+DEBUG=False
+ALLOWED_HOSTS=your.domain.com
+DATABASE_URL=postgres://user:pass@host:5432/dbname
+GEMINI_API_KEY=your-gemini-api-key
+SECURE_SSL_REDIRECT=True
+SECURE_HSTS_SECONDS=3600
 ```
 
-Example (PowerShell)
+Install
 ```
-$body = @{ messages = @(@{ sender = "Alice"; text = "Hi!" }, @{ sender = "Bob"; text = "Work updates" }) } | ConvertTo-Json -Depth 4
-Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/analyze/" -ContentType "application/json" -Body $body
+pip install -r requirements.txt
 ```
+
+Migrate
+```
+cd Connection_Type
+python manage.py migrate
+```
+
+Run (Dev)
+```
+python manage.py runserver 127.0.0.1:8000
+```
+
+Run (Production ASGI)
+Use uvicorn (or gunicorn+daphne) with the ASGI app:
+```
+uvicorn connection_ai.asgi:application --host 0.0.0.0 --port 8000 --workers 4
+```
+
+Endpoint
+- GET /api/analyze-pair/?user_a_id=1&user_b_id=2
 
 Notes
-- LLM features are parsed as JSON safely; missing keys default to 0.
-- Classification logic applies simple profile similarity and rule overrides.
+- If `GEMINI_API_KEY` is missing or the LLM fails, the system falls back to heuristics.
+- Only the required endpoint is exposed; analytics/testing endpoints were removed.

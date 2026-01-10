@@ -1,14 +1,15 @@
 from rest_framework import serializers
-from .models import ConversationAnalysis
+from .constants import CONNECTION_TYPE_KEYS
 
-class MessageSerializer(serializers.Serializer):
-    sender = serializers.CharField()
-    text = serializers.CharField()
+class ConnectionDistributionSerializer(serializers.Serializer):
+    highest_connection_type = serializers.ChoiceField(choices=CONNECTION_TYPE_KEYS)
+    distribution = serializers.DictField(child=serializers.IntegerField(min_value=0, max_value=100))
+    pair_key = serializers.CharField()
+    message_count = serializers.IntegerField(min_value=0)
 
-class ConversationRequestSerializer(serializers.Serializer):
-    messages = MessageSerializer(many=True)
 
-class ConversationAnalysisSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ConversationAnalysis
-        fields = '__all__'
+class ConnectionDistributionSerializer(serializers.Serializer):
+    highest_connection_type = serializers.ChoiceField(choices=CONNECTION_TYPE_KEYS)
+    distribution = serializers.DictField(child=serializers.IntegerField(min_value=0, max_value=100))
+    pair_key = serializers.CharField()
+    message_count = serializers.IntegerField(min_value=0)
