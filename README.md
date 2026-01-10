@@ -1,6 +1,8 @@
-Session Gemini Chatbot
+Session Gemini Chatbot + Connection Type API
 
-A session-based AI chatbot built with Django REST Framework, LangChain, and Google Gemini. Features email-based session management for personalized conversations.
+A workspace with two Django REST projects:
+- Chatbot: Session-based AI chatbot using LangChain + Google Gemini.
+- Connection_Type: API that analyzes a conversation and classifies connection type.
 
 Features
 
@@ -24,7 +26,7 @@ Session Management: Django Sessions
 
 API: RESTful endpoints
 
-API Endpoints
+Chatbot API Endpoints
 
 Set Email & Create Session
 POST /api/set_email/
@@ -73,3 +75,46 @@ curl -X POST http://127.0.0.1:8000/api/chat/ -H "Content-Type: application/json"
 Notes
 - Uses `langchain-google-genai` with the supported `google.genai` SDK.
 - Configure `GEMINI_API_KEY` in your `.env`.
+
+Connection_Type Project
+
+Setup (Windows PowerShell)
+
+1. Create/activate venv and install requirements (already handled if using workspace venv).
+2. Run migrations and start the server.
+
+Commands
+
+```
+cd Connection_Type
+..\venv\Scripts\python.exe manage.py makemigrations api
+..\venv\Scripts\python.exe manage.py migrate
+..\venv\Scripts\python.exe manage.py runserver
+```
+
+Environment
+- Optional: `DATABASE_URL` for Postgres via `dj-database-url`.
+- If using Postgres, `psycopg2-binary` is installed.
+
+Endpoints
+- POST /api/analyze/
+
+Request body
+```
+{
+	"messages": [
+		{"sender": "Alice", "text": "Hi! How are you?"},
+		{"sender": "Bob", "text": "Let's schedule a meeting for the project."}
+	]
+}
+```
+
+Example (PowerShell)
+```
+$body = @{ messages = @(@{ sender = "Alice"; text = "Hi!" }, @{ sender = "Bob"; text = "Work updates" }) } | ConvertTo-Json -Depth 4
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/analyze/" -ContentType "application/json" -Body $body
+```
+
+Notes
+- LLM features are parsed as JSON safely; missing keys default to 0.
+- Classification logic applies simple profile similarity and rule overrides.
