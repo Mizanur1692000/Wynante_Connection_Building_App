@@ -102,6 +102,7 @@ REST_FRAMEWORK = {
 # Logging: basic structured logs suitable for production
 LOGGING = {
     "version": 1,
+    # Allow default Django dev server request logging to show status lines
     "disable_existing_loggers": False,
     "formatters": {
         "json": {
@@ -116,9 +117,65 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO" if not DEBUG else "DEBUG",
+        "level": "WARNING",
+    },
+    "loggers": {
+        # Suppress Django dev server request logs
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",  # show "GET ... 200" status lines as usual
+            "propagate": False,
+        },
+        # Quiet noisy third-party libs
+        "httpx": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "google_genai": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "google_genai.models": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "langchain": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "urllib3": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "google.auth": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # App logger to show concise API status lines
+        "api": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
+
+# Suppress specific runtime warnings in dev related to naive datetimes
+try:
+    import warnings
+    warnings.filterwarnings(
+        "ignore",
+        message="DateTimeField .* received a naive datetime.*",
+        category=RuntimeWarning,
+    )
+except Exception:
+    pass
 
 # Security hardening toggled by DEBUG
 if not DEBUG:

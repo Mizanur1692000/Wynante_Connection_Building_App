@@ -1,5 +1,7 @@
 from typing import Dict, List, Tuple
+import logging
 from django.db.models import Q
+from django.utils import timezone
 from ..models import ConversationMessage, ConversationSummary
 from ..constants import CONNECTION_TYPE_KEYS
 from ..feature_extraction import extract_features as extract_features_heuristic
@@ -59,6 +61,12 @@ def infer_pair_connection(user_a_id: int, user_b_id: int) -> Dict:
     user_b = max(user_a_id, user_b_id)
     pair_key = f"{user_a}-{user_b}"
     new_last_message_at = rows[-1]["sent_at"] if rows else None
+    if new_last_message_at and timezone.is_naive(new_last_message_at):
+        try:
+            new_last_message_at = timezone.make_aware(new_last_message_at)
+        except Exception:
+            # If awareness fails, keep as-is to avoid crashing; logging is suppressed in dev
+            pass
     new_message_count = len(rows)
 
     cached = ConversationSummary.objects.filter(pair_key=pair_key).values(
@@ -83,6 +91,9 @@ def infer_pair_connection(user_a_id: int, user_b_id: int) -> Dict:
         }
         scores = connection_type_scores_raw(cached_features)
         distribution, highest = _percentages_independent(scores)
+        logging.getLogger("api").info(
+            "analyze-pair cache-hit pair_key=%s messages=%s highest=%s", pair_key, new_message_count, highest
+        )
         return {
             "highest_connection_type": highest,
             "distribution": distribution,
@@ -125,6 +136,7 @@ def infer_pair_connection(user_a_id: int, user_b_id: int) -> Dict:
             return all(float(d.get(k, 0.0)) == 0.0 for k in keys)
 
         final_features = llm_features if llm_features and not _is_all_zeros(llm_features) else heuristic_features
+    strategy = "heuristic" if USE_HEURISTIC or final_features is heuristic_features else "llm"
 
     # Deterministic probability distribution
     scores = connection_type_scores_raw(final_features)
@@ -153,6 +165,9 @@ def infer_pair_connection(user_a_id: int, user_b_id: int) -> Dict:
             "formality": final_features.get("formality", 0.0),
             "emotional_intensity": final_features.get("emotional_intensity", 0.0),
         }
+    )
+    logging.getLogger("api").info(
+        "analyze-pair ok pair_key=%s messages=%s strategy=%s highest=%s", pair_key, message_count, strategy, highest
     )
 
     return {
