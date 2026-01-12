@@ -45,3 +45,14 @@ class ConversationSummary(models.Model):
 
     def __str__(self):
         return f"{self.pair_key}: {self.connection_type} ({self.confidence})"
+
+
+class PostsComment(models.Model):
+    id = models.AutoField(primary_key=True)
+    post = models.TextField()
+    comment = models.TextField()
+    created_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'posts_comments'

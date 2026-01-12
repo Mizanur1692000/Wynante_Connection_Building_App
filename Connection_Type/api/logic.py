@@ -47,25 +47,3 @@ def connection_type_scores_raw(features: dict) -> dict:
         boosted[k] = max(0.0, min(1.0, boosted[k]))
 
     return boosted
-
-
-def connection_type_scores_raw(features: dict) -> dict:
-    """Return independent per-type scores (0..1) without normalization.
-
-    - Computes similarity per class
-    - Applies soft rule boosts
-    - Clamps each score to [0, 1]
-    """
-    base = {k: similarity(features, v) for k, v in CONNECTION_PROFILES.items()}
-    boosted = dict(base)
-
-    if features.get("task_focus", 0) > 0.8:
-        boosted["Professional"] = boosted.get("Professional", 0) + 0.5
-    if features.get("spiritual_reference", 0) > 0.7:
-        boosted["Spiritual"] = boosted.get("Spiritual", 0) + 0.5
-
-    # Clamp to [0, 1]
-    for k in boosted:
-        boosted[k] = max(0.0, min(1.0, boosted[k]))
-
-    return boosted

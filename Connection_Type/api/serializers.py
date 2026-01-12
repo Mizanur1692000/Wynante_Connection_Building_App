@@ -6,3 +6,12 @@ class ConnectionDistributionSerializer(serializers.Serializer):
     distribution = serializers.DictField(child=serializers.IntegerField(min_value=0, max_value=100))
     pair_key = serializers.CharField()
     message_count = serializers.IntegerField(min_value=0)
+
+
+class ProfileInputSerializer(serializers.Serializer):
+    about_me = serializers.CharField(allow_blank=True, required=False)
+    interests = serializers.CharField(allow_blank=True, required=False)
+    looking_for = serializers.CharField(allow_blank=True, required=False)
+    education = serializers.CharField(allow_blank=True, required=False)
+    occupation = serializers.CharField(allow_blank=True, required=False)
+    relationship_status = serializers.CharField(allow_blank=True, required=False)
