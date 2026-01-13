@@ -15,3 +15,4 @@ class ProfileInputSerializer(serializers.Serializer):
     education = serializers.CharField(allow_blank=True, required=False)
     occupation = serializers.CharField(allow_blank=True, required=False)
     relationship_status = serializers.CharField(allow_blank=True, required=False)
+    limit = serializers.IntegerField(min_value=1, required=False, help_text="Limit the number of recent posts/comments to analyze.")

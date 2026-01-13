@@ -10,7 +10,9 @@ WARMTH_WORDS = {
 ROMANTIC_WORDS = {
     "love", "lover", "lovely", "darling", "babe", "bby", "baby", "sweetheart",
     "honey", "kiss", "kisses", "romantic", "date", "dating", "heart", "xoxo",
-    "miss you", "i miss you"
+    "miss you", "i miss you", "partner", "candlelight", "dinner", "heartfelt",
+    "getaway", "sunset", "anniversary", "memories", "surprise", "cozy", "dreams",
+    "beautiful", "special", "moment", "smile", "laugh", "laughter", "stars"
 }
 
 SPIRITUAL_WORDS = {
@@ -20,9 +22,9 @@ SPIRITUAL_WORDS = {
 }
 
 TASK_WORDS = {
-    "project", "deadline", "deliverable", "meeting", "meet", "schedule", "plan",
+    "project", "deadline", "deliverable", "meeting", "meet", "schedule",
     "task", "todo", "assign", "assignment", "objective", "goal", "kpi", "report",
-    "update", "work", "workstream", "status", "document", "review", "sync"
+    "work", "workstream", "status", "document", "sync"
 }
 
 FORMALITY_MARKERS = {
@@ -71,9 +73,9 @@ def extract_features(messages: List[Dict[str, str]]) -> Dict[str, float]:
     spiritual_hits = sum(1 for t in tokens if t in SPIRITUAL_WORDS)
     spiritual_reference = min(1.0, _safe_div(spiritual_hits, max(1, token_count // 25)))
 
-    # Feature: task_focus
+    # Feature: task_focus (reduced sensitivity to avoid Professional bias)
     task_hits = sum(1 for t in tokens if t in TASK_WORDS)
-    task_focus = min(1.0, _safe_div(task_hits, max(1, token_count // 25)))
+    task_focus = min(1.0, _safe_div(task_hits, max(1, token_count // 40)))
 
     # Feature: formality (markers, salutations, closings; penalize contractions)
     formality_hits = sum(1 for t in tokens if t in FORMALITY_MARKERS)

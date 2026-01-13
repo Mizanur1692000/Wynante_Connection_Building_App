@@ -37,10 +37,14 @@ def connection_type_scores_raw(features: dict) -> dict:
     base = {k: similarity(features, v) for k, v in CONNECTION_PROFILES.items()}
     boosted = dict(base)
 
-    if features.get("task_focus", 0) > 0.8:
-        boosted["Professional"] = boosted.get("Professional", 0) + 0.5
+    # Apply boosts more carefully to avoid Professional bias
+    if features.get("task_focus", 0) > 0.85:
+        boosted["Professional"] = boosted.get("Professional", 0) + 0.3
     if features.get("spiritual_reference", 0) > 0.7:
         boosted["Spiritual"] = boosted.get("Spiritual", 0) + 0.5
+    # Add romantic boost to counter Professional bias
+    if features.get("romantic_language", 0) > 0.6:
+        boosted["Romantic"] = boosted.get("Romantic", 0) + 0.4
 
     # Clamp to [0, 1]
     for k in boosted:
