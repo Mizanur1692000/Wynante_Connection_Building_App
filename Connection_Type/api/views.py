@@ -85,8 +85,7 @@ def _run_profile_analysis(messages: list) -> dict:
         features_profile = extract_features_heuristic(profile_msg_list) if profile_msg_list else {}
         features_posts = extract_features_heuristic(posts_msgs_list) if posts_msgs_list else {}
 
-        # Merge using weighted average: 60% profile, 40% posts
-        # This ensures profile input has dominant influence
+        # Merge using weighted average: 50% profile, 50% posts
         all_keys = set(features_profile.keys()) | set(features_posts.keys())
         features = {
             k: (features_profile.get(k, 0.0) * 0.5 + features_posts.get(k, 0.0) * 0.5)
@@ -129,17 +128,9 @@ class AnalyzeProfile(APIView):
         distribution = _percentages(scores)
         highest = max(scores, key=scores.get) if scores else "N/A"
 
-        # Create a debug echo of the text sent to the AI
-        combined_text_for_debug = "\n---\n".join([m["text"] for m in messages])
-        debug_echo = f"Analyzed {len(messages)} message parts. Snippet: {combined_text_for_debug[:250]}..."
-
         return Response({
             "highest_connection_type": highest,
             "distribution": distribution,
             "source": "profile+posts_comments",
             "count_messages": len(messages),
-            "debug_echo": debug_echo,
         }, status=status.HTTP_200_OK)
-
-
-
