@@ -1,53 +1,95 @@
-import numpy as np
+from typing import Dict
 
-CONNECTION_PROFILES = {
-    "Social": {
-        "emotional_warmth": 0.6,
-        "romantic_language": 0.2,
-        "task_focus": 0.2,
-        "spiritual_reference": 0.1
-    },
-    "Romantic": {
-        "emotional_warmth": 0.8,
-        "romantic_language": 0.8,
-        "formality": 0.1
-    },
-    "Spiritual": {
-        "spiritual_reference": 0.8,
-        "emotional_warmth": 0.6,
-        "romantic_language": 0.1
-    },
-    "Professional": {
-        "task_focus": 0.8,
-        "formality": 0.7,
-        "romantic_language": 0.0
-    }
-}
 
-def similarity(features, profile):
-    return 1 - np.mean([abs(features.get(k, 0.0) - v) for k, v in profile.items()])
+def _val(features: Dict[str, float], key: str) -> float:
+    v = float(features.get(key, 0.0) or 0.0)
+    return 0.0 if v < 0 else (1.0 if v > 1 else v)
+
 
 def connection_type_scores_raw(features: dict) -> dict:
     """Return independent per-type scores (0..1) without normalization.
 
-    - Computes similarity per class
-    - Applies soft rule boosts
-    - Clamps each score to [0, 1]
+    New scoring emphasizes tonal cues and interactions:
+    - Romantic: romantic_language, emotional_warmth, low formality/task_focus, high intensity
+    - Social: emotional_warmth, moderate intensity, low task_focus, light romantic
+    - Spiritual: spiritual_reference primary, then warmth and composure
+    - Professional: task_focus and formality, dampened by romantic/intensity
     """
-    base = {k: similarity(features, v) for k, v in CONNECTION_PROFILES.items()}
-    boosted = dict(base)
+    ew = _val(features, "emotional_warmth")
+    rl = _val(features, "romantic_language")
+    sr = _val(features, "spiritual_reference")
+    tf = _val(features, "task_focus")
+    fm = _val(features, "formality")
+    ei = _val(features, "emotional_intensity")
 
-    # Apply boosts more carefully to avoid Professional bias
-    if features.get("task_focus", 0) > 0.85:
-        boosted["Professional"] = boosted.get("Professional", 0) + 0.3
-    if features.get("spiritual_reference", 0) > 0.7:
-        boosted["Spiritual"] = boosted.get("Spiritual", 0) + 0.5
-    # Add romantic boost to counter Professional bias
-    if features.get("romantic_language", 0) > 0.6:
-        boosted["Romantic"] = boosted.get("Romantic", 0) + 0.4
+    # Helper transforms
+    low_formality = 1.0 - fm
+    low_task = 1.0 - tf
+    mid_intensity = 1.0 - abs(ei - 0.5) * 2  # peaks at 0.5, 0 at 0/1
+
+    # Base weighted scores
+    romantic = (
+        0.45 * rl +
+        0.25 * ew +
+        0.10 * ei +
+        0.10 * low_formality +
+        0.10 * low_task
+    )
+
+    social = (
+        0.40 * ew +
+        0.15 * (0.3 <= rl <= 0.6) +  # slight social flirtation
+        0.20 * mid_intensity +
+        0.15 * low_task +
+        0.10 * low_formality
+    )
+    # Convert boolean term to float if used
+    if isinstance(social, bool):
+        social = float(social)
+
+    spiritual = (
+        0.60 * sr +
+        0.15 * ew +
+        0.15 * (1.0 - ei) +  # calmer tone
+        0.10 * fm
+    )
+
+    professional = (
+        0.50 * tf +
+        0.25 * fm +
+        0.10 * (1.0 - rl) +
+        0.15 * (1.0 - ei)
+    )
+
+    # Interaction boosts/penalties
+    # Romantic synergy: high rl and high ew
+    if rl > 0.6 and ew > 0.6:
+        romantic += 0.20
+        professional -= 0.10
+        social -= 0.05
+
+    # Passionate romance: very high intensity with romantic cues
+    if ei > 0.8 and rl > 0.5:
+        romantic += 0.10
+
+    # Friendly warmth: high ew, moderate intensity, low task
+    if ew > 0.6 and 0.3 <= ei <= 0.7 and tf < 0.4:
+        social += 0.15
+
+    # Spiritual emphasis: strong references with composed tone
+    if sr > 0.6 and 0.2 <= (1.0 - ei) <= 0.8:
+        spiritual += 0.15
+
+    # Strong professional pattern: task + formality and low romance
+    if tf > 0.7 and fm > 0.6 and rl < 0.3:
+        professional += 0.20
 
     # Clamp to [0, 1]
-    for k in boosted:
-        boosted[k] = max(0.0, min(1.0, boosted[k]))
+    scores = {
+        "Social": max(0.0, min(1.0, social)),
+        "Romantic": max(0.0, min(1.0, romantic)),
+        "Spiritual": max(0.0, min(1.0, spiritual)),
+        "Professional": max(0.0, min(1.0, professional)),
+    }
 
-    return boosted
+    return scores

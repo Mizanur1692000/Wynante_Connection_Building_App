@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "chatbot",
     "api",
 ]
 
@@ -98,6 +99,10 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.JSONParser",
     ),
 }
+
+# External API keys
+# Used by chatbot ChatView for Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Logging: basic structured logs suitable for production
 LOGGING = {

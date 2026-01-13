@@ -9,6 +9,8 @@ class ConnectionDistributionSerializer(serializers.Serializer):
 
 
 class ProfileInputSerializer(serializers.Serializer):
+    # Mandatory session_id: all functional endpoints require it
+    session_id = serializers.CharField(required=True, allow_blank=False)
     about_me = serializers.CharField(allow_blank=True, required=False)
     interests = serializers.CharField(allow_blank=True, required=False)
     looking_for = serializers.CharField(allow_blank=True, required=False)

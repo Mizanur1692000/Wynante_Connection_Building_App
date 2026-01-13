@@ -9,6 +9,7 @@ from .feature_extraction import extract_features as extract_features_heuristic
 from .logic import connection_type_scores_raw
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.sessions.models import Session
 
 try:
     from llm_service.llm import extract_features as extract_features_llm
@@ -19,6 +20,24 @@ except Exception:
 
 class AnalyzePairFromDB(APIView):
     def get(self, request):
+        # Require a valid session_id param (cookie sessions are not sufficient)
+        sid = request.query_params.get("session_id")
+        if not sid:
+            return Response({
+                "detail": "session_id is required. Call /set_email/ first to obtain it."
+            }, status=status.HTTP_403_FORBIDDEN)
+        # Validate session_id maps to a stored session with email
+        sessions = Session.objects.all()
+        valid = False
+        for s in sessions:
+            data = s.get_decoded()
+            if data.get("custom_session_id") == sid and data.get("user_email"):
+                valid = True
+                break
+        if not valid:
+            return Response({
+                "detail": "Invalid session_id. Set email via /set_email/ first."
+            }, status=status.HTTP_403_FORBIDDEN)
         try:
             a = int(request.query_params.get("user_a_id"))
             b = int(request.query_params.get("user_b_id"))
@@ -98,6 +117,24 @@ def _run_profile_analysis(messages: list) -> dict:
 class AnalyzeProfile(APIView):
     """POST endpoint: takes profile inputs, merges posts_comments, returns AI-based per-type percentages."""
     def post(self, request):
+        # Require a valid session_id in body (cookie sessions are not sufficient)
+        sid = request.data.get("session_id")
+        if not sid:
+            return Response({
+                "detail": "session_id is required. Call /set_email/ first to obtain it."
+            }, status=status.HTTP_403_FORBIDDEN)
+        # Validate session_id maps to a stored session with email
+        sessions = Session.objects.all()
+        valid = False
+        for s in sessions:
+            data = s.get_decoded()
+            if data.get("custom_session_id") == sid and data.get("user_email"):
+                valid = True
+                break
+        if not valid:
+            return Response({
+                "detail": "Invalid session_id. Set email via /set_email/ first."
+            }, status=status.HTTP_403_FORBIDDEN)
         # Validate profile inputs
         s = ProfileInputSerializer(data=request.data)
         s.is_valid(raise_exception=True)

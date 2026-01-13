@@ -3,5 +3,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("api.urls")),
+    # Mount both apps at root to match requested endpoints
+    path("", include("chatbot.urls")),
+    path("", include("api.urls")),
 ]
